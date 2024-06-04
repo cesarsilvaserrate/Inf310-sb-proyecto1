@@ -62,6 +62,9 @@ public class TableroGato implements Tablero<Integer> {
     public PiezaGato getTurno() {
         return this.turnoActual;
     }
+    public int getContador() {
+        return this.contador;
+    }
 
     @Override
     public Tablero<Integer> mover(Integer posicion) {
