@@ -5,6 +5,7 @@
  */
 package gato;
 
+import Arboles.*;
 import adaptador.Pieza;
 import adaptador.Tablero;
 import java.util.ArrayList;
@@ -17,25 +18,44 @@ import java.util.List;
  */
 public class TableroGato implements Tablero<Integer> {
 
+    private AVL<Integer, PiezaGato[]> historialMovimientos;
+    private int contador;
+
     //Cantidad de casillas
     private static final int NUM_CASILLAS = 9;
     //almacen de cassillas
-    private PiezaGato[] posicion;
+    private PiezaGato[] almacenCasillas;
     //Turno actual en ejecucion
     private PiezaGato turnoActual;
 
     public TableroGato() {
         //inicializamon el arreglo con 9 posiciones
-        this.posicion = new PiezaGato[NUM_CASILLAS];
+        this.almacenCasillas = new PiezaGato[NUM_CASILLAS];
         //iniciamos el primer turno
         turnoActual = PiezaGato.X;
-        //Rellenamos el array con espacios vacios:
-        Arrays.fill(posicion, PiezaGato.E);
+        //Rellenamos el almacenCasillas con espacios vacios:
+        Arrays.fill(almacenCasillas, PiezaGato.E);
+        this.historialMovimientos = new AVL<>();
+
+        this.contador = 0;
     }
 
-    public TableroGato(PiezaGato[] posicion, PiezaGato turnoActual) {
-        this.posicion = posicion;
+    public TableroGato(PiezaGato[] almacen, PiezaGato turnoActual) {
+        this.almacenCasillas = almacen;
         this.turnoActual = turnoActual;
+    }
+
+    public TableroGato(PiezaGato[] almacen, PiezaGato turnoActual, AVL<Integer, PiezaGato[]> historialMovimientos) {
+        this.almacenCasillas = almacen;
+        this.turnoActual = turnoActual;
+        this.historialMovimientos = historialMovimientos;
+    }
+
+    public TableroGato(PiezaGato[] almacen, PiezaGato turnoActual, AVL<Integer, PiezaGato[]> historialMovimientos, int contador) {
+        this.almacenCasillas = almacen;
+        this.turnoActual = turnoActual;
+        this.historialMovimientos = historialMovimientos;
+        this.contador = contador;
     }
 
     @Override
@@ -44,23 +64,72 @@ public class TableroGato implements Tablero<Integer> {
     }
 
     @Override
-    public Tablero<Integer> mover(Integer ubicacion) {
-        //copiamos las posiciones actuales
-        PiezaGato[] posicionTemporal = Arrays.copyOf(posicion, posicion.length);
-        //dibujamos el turno actual
-        posicionTemporal[ubicacion] = turnoActual;
-        //devolvermos un tablero nuevo, con el turno hecho
-        //y lo entregamos con el turno opuesto
-        return new TableroGato(posicionTemporal, turnoActual.opuesto());
+    public Tablero<Integer> mover(Integer posicion) {
+        // Copiamos el almacen actual a un almacen temporal
+        PiezaGato[] almacenTempCasillas = Arrays.copyOf(almacenCasillas, almacenCasillas.length);
+
+        // Agregamos el turno actual
+        almacenTempCasillas[posicion] = turnoActual;
+
+        // Incrementamos el contador
+        int nuevoContador = this.contador + 1;
+
+        // Creamos un nuevo AVL para el historial de movimientos
+        AVL<Integer, PiezaGato[]> nuevoHistorialMovimientos = new AVL<>();
+
+        // Copiamos los elementos del historial actual al nuevo historial
+        for (int i = 1; i <= this.contador; i++) {
+            PiezaGato[] estado = historialMovimientos.buscar(i);
+            if (estado != null) {
+                nuevoHistorialMovimientos.insertar(i, estado);
+            }
+        }
+
+        // Insertamos el nuevo estado en el historial
+        nuevoHistorialMovimientos.insertar(nuevoContador, almacenTempCasillas);
+
+        // Devolvemos un nuevo tablero con el turno hecho y el turno opuesto
+        return new TableroGato(almacenTempCasillas, turnoActual.opuesto(), nuevoHistorialMovimientos, nuevoContador);
+    }
+
+    public TableroGato deshacerUltimoMovimiento() throws Exception {
+        if (NodoBinario.esNodoVacio(historialMovimientos.getRaiz())) {
+            throw new Exception("No hay movimientos para deshacer");
+        }
+
+        Integer ubicacionUltimoMovimiento = historialMovimientos.obtenerClaveMaxima();
+        AVL<Integer, PiezaGato[]> nuevoHistorialMovimientos = new AVL<>();
+
+        for (int i = 1; i < ubicacionUltimoMovimiento; i++) {
+            PiezaGato[] estado = historialMovimientos.buscar(i);
+            if (estado != null) {
+                nuevoHistorialMovimientos.insertar(i, estado);
+            }
+        }
+
+        // Obtener el estado anterior al último movimiento
+        PiezaGato[] estadoAnterior = historialMovimientos.buscar(ubicacionUltimoMovimiento - 1);
+
+        // Decrementar el contador
+        int nuevoContador = this.contador - 1;
+
+        // Si no hay movimientos previos, inicializar un tablero vacío
+        if (estadoAnterior == null) {
+            estadoAnterior = new PiezaGato[NUM_CASILLAS];
+            Arrays.fill(estadoAnterior, PiezaGato.E);
+        }
+
+        // Devolver un nuevo tablero con el estado anterior y el turno opuesto
+        return new TableroGato(estadoAnterior, turnoActual.opuesto(), nuevoHistorialMovimientos, nuevoContador);
     }
 
     @Override
     public List<Integer> getMovimientosLegales() {
         var movimientosLegales = new ArrayList<Integer>();
-        for (int i = 0; i < posicion.length; i++) {
+        for (int i = 0; i < almacenCasillas.length; i++) {
             //si es un espacio vacio lo agregamos
             //a la lista de movimientos permitidos
-            if (posicion[i] == PiezaGato.E) {
+            if (almacenCasillas[i] == PiezaGato.E) {
                 movimientosLegales.add(i);
             }
         }
@@ -76,9 +145,9 @@ public class TableroGato implements Tablero<Integer> {
     }
 
     private boolean chequearPosicion(int pos0, int pos1, int pos2) {
-        return posicion[pos0] == posicion[pos1]
-                && posicion[pos1] == posicion[pos2]
-                && posicion[pos0] != PiezaGato.E; //para que no me tome el caso vacio
+        return almacenCasillas[pos0] == almacenCasillas[pos1]
+                && almacenCasillas[pos1] == almacenCasillas[pos2]
+                && almacenCasillas[pos0] != PiezaGato.E; //para que no me tome el caso vacio
     }
 
     @Override
@@ -103,7 +172,7 @@ public class TableroGato implements Tablero<Integer> {
         for (int fila = 0; fila < 3; fila++) {
             for (int columna = 0; columna < 3; columna++) {
                 //primero dibuja la pieza
-                sb.append(posicion[fila * 3 + columna].toString());
+                sb.append(almacenCasillas[fila * 3 + columna].toString());
                 //si no es la columna final rayita
                 if (columna != 2) {
                     sb.append("|");

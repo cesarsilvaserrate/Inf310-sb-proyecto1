@@ -98,19 +98,37 @@ public class AVL<K extends Comparable<K>, V> extends ArbolBinarioBusqueda<K, V> 
         nodoActual.setHijoDerecho(primerNodoQueRota);
         return rotacionSimpleAIzquierda(nodoActual);
     }
+    public K obtenerClaveMaxima() throws Exception {
+        if (NodoBinario.esNodoVacio(raiz)) {
+            throw new Exception("El árbol está vacío");
+        }
+        NodoBinario<K, V> nodoActual = this.raiz;
+        while (!NodoBinario.esNodoVacio(nodoActual)) {
+            if (NodoBinario.esNodoVacio(nodoActual.getHijoDerecho())) {
+                return nodoActual.getClave();
+            }
+            nodoActual = nodoActual.getHijoDerecho();
+        }
+        // Esto nunca debería ocurrir si el árbol AVL está correctamente construido
+        throw new IllegalStateException("Error al buscar la clave máxima");
+        
+    }
     
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         
         AVL<Integer, String> arbol1 = new AVL<>();
 
-        arbol1.insertar(50, "aa");
-        arbol1.insertar(40, "bb");
-        arbol1.insertar(80, "cc");
-        arbol1.insertar(30, "dd");
-        arbol1.insertar(45, "ee");
+        arbol1.insertar(0, "aa");
+        arbol1.insertar(1, "bb");
+        arbol1.insertar(2, "cc");
+        arbol1.insertar(3, "dd");
+        arbol1.insertar(4, "ee");
 
         List<Integer> lista = arbol1.recorridoEnPostOrden();
+        List<Integer> lista2 = arbol1.recorridoEnInOrden();
         System.out.println(lista);
+        System.out.println(lista2);
+        System.out.println(arbol1.obtenerClaveMaxima().toString());
         
     }
 

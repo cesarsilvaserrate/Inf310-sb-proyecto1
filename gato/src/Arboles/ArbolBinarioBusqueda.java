@@ -667,7 +667,7 @@ public class ArbolBinarioBusqueda<K extends Comparable<K>, V> implements IArbolB
         return nodoActual;
     }
     
-    private int obtenerPosicionDeClave(K claveABuscar, List<K> listaDeClaves) {
+    public int obtenerPosicionDeClave(K claveABuscar, List<K> listaDeClaves) {
         for (int i = 0; i < listaDeClaves.size(); i++) {
             K claveActual = listaDeClaves.get(i);
             if (claveActual.compareTo(claveABuscar) == 0) {
