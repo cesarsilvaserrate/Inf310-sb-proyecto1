@@ -1,30 +1,50 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package gato;
 
 import java.util.Scanner;
-
+import Arboles.*;
+import Excepciones.ExcepcionOrdenInvalido;
 /**
  *
  * @author lubuntu
  */
 public class Gato {
-    
-    private TableroGato tablero = new TableroGato();
+
+    private final ArbolMVias<Integer, TableroGato> arbol1;  // Usamos un árbol de orden 3
     private Scanner scanner = new Scanner(System.in);
-    
+    private int contadorDeMovimientos; // Variable para llevar la cuenta de movimientos
+    private TableroGato primerMovimiento; // Variable para almacenar el primer movimiento
+
+    public Gato() throws ExcepcionOrdenInvalido {
+        this.arbol1 = new ArbolMVias<>(3);
+        this.contadorDeMovimientos = 0;
+        this.primerMovimiento = null;
+        arbol1.insertar(contadorDeMovimientos, new TableroGato());  // Inicializamos el árbol con un tablero vacío
+    }
+
+    public TableroGato obtenerTablero(int movimiento) {
+        return arbol1.buscar(movimiento);
+    }
+
+    public void actualizarTablero(TableroGato tablero) {
+        contadorDeMovimientos++;
+        arbol1.insertar(contadorDeMovimientos, tablero);
+        if (contadorDeMovimientos == 1) {
+            primerMovimiento = tablero;
+        }
+    }
+
     public Integer getMovimientoDelJugador() {
+        TableroGato tablero = obtenerTablero(contadorDeMovimientos);
         Integer mover = -1;
         while (!tablero.getMovimientosLegales().contains(mover)) {
-            System.out.println("Ingrese la casilla del 0 al 8 o -1 para deshacer el último movimiento: ");
+            System.out.println("Ingrese la casilla del 0 al 8 o -1 para deshacer el último movimiento, o -2 para ver el primer movimiento: ");
             Integer entradaDelMovimiento = scanner.nextInt();
             if (entradaDelMovimiento == -1) {
-                if (tablero.getContador() > 0) {
+                if (contadorDeMovimientos > 0) {
                     try {
                         tablero = tablero.deshacerUltimoMovimiento();
+                        arbol1.insertar(contadorDeMovimientos, tablero);  // Actualizamos el tablero en el árbol
+                        contadorDeMovimientos--;  // Reducimos el contador ya que se deshizo un movimiento
                         System.out.println("Movimiento deshecho.");
                         System.out.println(tablero);
                     } catch (Exception e) {
@@ -33,18 +53,27 @@ public class Gato {
                 } else {
                     System.out.println("No hay movimientos para deshacer.");
                 }
+            } else if (entradaDelMovimiento == -2) {
+                if (primerMovimiento != null) {
+                    System.out.println("Primer movimiento de la partida:");
+                    System.out.println(primerMovimiento);
+                } else {
+                    System.out.println("No hay movimientos realizados aún.");
+                }
             } else {
                 mover = entradaDelMovimiento;
             }
         }
         return mover;
     }
-    
+
     private void jugarAlGato() {
         while (true) {
             Integer movimientoHumano = getMovimientoDelJugador();
             if (movimientoHumano != -1) {
+                TableroGato tablero = obtenerTablero(contadorDeMovimientos);
                 tablero = (TableroGato) tablero.mover(movimientoHumano);
+                actualizarTablero(tablero);  // Actualizamos el tablero en el árbol
 
                 if (tablero.haGanado()) {
                     System.out.println(tablero);
@@ -59,6 +88,7 @@ public class Gato {
                 Integer movimientoPc = Minimax.EncontrarMejorMovimiento(tablero, 9);
                 System.out.println("La computadora ha decidido: " + movimientoPc);
                 tablero = (TableroGato) tablero.mover(movimientoPc);
+                actualizarTablero(tablero);  // Actualizamos el tablero en el árbol
                 System.out.println(tablero);
 
                 if (tablero.haGanado()) {
@@ -74,10 +104,7 @@ public class Gato {
         }
     }
 
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws ExcepcionOrdenInvalido {
         Gato gato = new Gato();
         gato.jugarAlGato();
     }
